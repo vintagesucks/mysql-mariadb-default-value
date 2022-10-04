@@ -1,0 +1,40 @@
+name: Test
+
+on:
+    push:
+        branches: [main]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        continue-on-error: true
+        strategy:
+            matrix:
+                image:
+                    - mysql:5.5.53
+                    - mysql:5.7.16
+                    - mariadb:5.5.64
+                    - mariadb:10.1.1
+                    - mariadb:10.2.39
+        services:
+            mysql:
+                image: ${{ matrix.image }}
+                env:
+                    MYSQL_DATABASE: test
+                    MYSQL_HOST: 127.0.0.1
+                    MYSQL_USER: test
+                    MYSQL_PASSWORD: secret
+                    MYSQL_ROOT_PASSWORD: secret
+                ports:
+                    - 3306:3306
+                options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        name: Test
+        steps:
+            - name: CREATE TABLE test.test (id varchar(10) NOT NULL, test varchar(16) NOT NULL, PRIMARY KEY(id)) ENGINE=InnoDB;
+              run: mysql --password=secret --user=test --host=127.0.0.1 -e "CREATE TABLE test.test (id varchar(10) NOT NULL, test varchar(16) NOT NULL, PRIMARY KEY(id)) ENGINE=InnoDB;"
+              
+            - name: INSERT INTO test.test (id) VALUES (1);
+              run: mysql --password=secret --user=test --host=127.0.0.1 -e "INSERT INTO test.test (id) VALUES (1);"
+    
+            - name: SELECT * FROM test.test;
+              run: mysql --password=secret --user=test --host=127.0.0.1 -e "SELECT * FROM test.test;"
